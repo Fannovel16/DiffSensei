@@ -61,7 +61,9 @@ def result_generation(
             dialog_bbox=dialog_bbox.copy(),
         ).images
     except Exception as e:
-        print(f"generation failed! image shape: [{width}, {height}] num_sample: {num_samples}. Probably OOM.")
+        print(f"generation failed! image shape: [{width}, {height}] num_sample: {num_samples}.")
+        import traceback
+        traceback.print_exc()
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -281,7 +283,7 @@ def main(args):
             outputs=generated_images,
         )
 
-    demo.launch()
+    demo.launch(share=args.share)
 
 
 if __name__ == "__main__":
@@ -296,6 +298,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_path", type=str, required=True)
     parser.add_argument("--inference_config_path", type=str, required=True)
     parser.add_argument("--ckpt_path", type=str, required=True)
+    parser.add_argument("--share", action='store_true')
     args = parser.parse_args()
     
     main(args)
