@@ -177,6 +177,16 @@ class DiffSenseiPipeline(StableDiffusionXLPipeline):
             if hasattr(attn_processor, "scale"):
                 attn_processor.scale = scale
 
+    def offload_models(self):
+        for offload_model in [self.text_encoder, self.text_encoder_2, self.image_encoder, self.magi_image_encoder, self.image_proj_model]:
+            offload_model.to("cpu")
+        torch.cuda.empty_cache()
+    
+    def onload_models(self):
+        torch.cuda.empty_cache()
+        for offload_model in [self.text_encoder, self.text_encoder_2, self.image_encoder, self.magi_image_encoder, self.image_proj_model]:
+            offload_model.to("cuda")
+
     @torch.no_grad()
     def __call__(
         self,
@@ -304,6 +314,7 @@ class DiffSenseiPipeline(StableDiffusionXLPipeline):
         dialog_bbox = dialog_bbox.to(device)
 
         # 8. Denoising loop
+        self.offload_models()
         self._num_timesteps = len(timesteps)
         progress_bar_context = nullcontext() if self.progress_bar_config["disable"] else self.progress_bar(total=num_inference_steps)
         with progress_bar_context:
@@ -366,7 +377,7 @@ class DiffSenseiPipeline(StableDiffusionXLPipeline):
 
         image = self.image_processor.postprocess(image, output_type="pil")
 
-        # Offload all models
-        self.maybe_free_model_hooks()
+        # Onload back to GPU
+        self.onload_models()
 
         return StableDiffusionXLPipelineOutput(images=image)
